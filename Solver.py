@@ -2,10 +2,8 @@ import os
 import json
 import numpy as np
 from glob import glob
-import GeneralInteligence
-
-TRAIN_DIR = os.path.join("data", "training")
-EVAL_DIR = os.path.join("data", "evaluation")
+import general_inteligence
+import argparse
 
 def load_arc_tasks(folder):
     tasks = {}
@@ -20,11 +18,11 @@ def load_arc_tasks(folder):
         tasks[os.path.splitext(os.path.basename(path))[0]] = data
     return tasks
 
-class Solver(GeneralInteligence.ARCSolver):
+class Solver(general_inteligence.ARCSolver):
     def __init__(self, name: str = "Solver"):
         super().__init__()
         self.name = name
-        self.solver = GeneralInteligence.ARCSolver()
+        self.solver = general_inteligence.ARCSolver()
 
     def fit(self, train_tasks):
         print("Training on {} tasks...".format(len(train_tasks)))
@@ -57,18 +55,37 @@ class Solver(GeneralInteligence.ARCSolver):
         return precision
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="ARC Solver Runner")
+    parser.add_argument('--pre', action='store_true', help='Use preschool data folder')
+    args = parser.parse_args()
+
+    if args.pre:
+        TRAIN_DIR = os.path.join("data", "preschool", "training")
+        EVAL_DIR = os.path.join("data", "preschool", "evaluation")
+    else:
+        TRAIN_DIR = os.path.join("data", "training")
+        EVAL_DIR = os.path.join("data", "evaluation")
+
     print("Loading training tasks...")
     train_tasks = load_arc_tasks(TRAIN_DIR)
     print("Loading evaluation tasks...")
     eval_tasks = load_arc_tasks(EVAL_DIR)
 
+    # Clean output directory before running
+    output_dir = os.path.join("data", "output")
+    if os.path.exists(output_dir):
+        for filename in os.listdir(output_dir):
+            file_path = os.path.join(output_dir, filename)
+            if os.path.isfile(file_path):
+                os.remove(file_path)
+
     # Train on all training tasks
-    solver = GeneralInteligence.ARCSolver()
+    solver = general_inteligence.ARCSolver()
     all_train_pairs = []
     for task in train_tasks.values():
         all_train_pairs.extend(task['train'])
     solver.fit({'train': all_train_pairs})
-
+    print(solver.best_rule)
     total = 0
     correct = 0
     verbose = True
